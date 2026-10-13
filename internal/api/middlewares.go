@@ -1,0 +1,89 @@
+package api
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/h0dy/ReelView/backend/internal/auth"
+	"github.com/h0dy/ReelView/backend/internal/types"
+)
+
+type contextKey string
+
+const UserContextKey contextKey = "user"
+
+func (cfg *APIConfig) JWTAuth(jwtSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			accessToken, err := auth.GetBearerToken(r.Header)
+			if err != nil {
+				respondWithErr(w, http.StatusUnauthorized, "Unauthorized", err)
+				return
+			}
+
+			userID, err := auth.ValidateJWT(accessToken, jwtSecret)
+			if err != nil {
+				respondWithErr(w, http.StatusUnauthorized, "Unauthorized", err)
+				return
+			}
+
+			user, err := cfg.DB.GetUserByID(r.Context(), userID)
+			if err != nil {
+				respondWithErr(w, http.StatusUnauthorized, "Unauthorized", err)
+				return
+			}
+
+			authUser := &types.AuthUser{
+				ID:        user.ID,
+				CreatedAt: user.CreatedAt,
+				UpdatedAt: user.UpdatedAt,
+				Email:     user.Email,
+				IsPremium: user.IsPremium,
+				Username:  user.Username,
+				Name:      user.Name,
+			}
+
+			ctx := context.WithValue(r.Context(), UserContextKey, authUser)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func (cfg *APIConfig) OptionalJWTAuth(jwtSecret string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			accessToken, err := auth.GetBearerToken(r.Header)
+			if err != nil {
+				// no token → continue without user
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			userID, err := auth.ValidateJWT(accessToken, jwtSecret)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			user, err := cfg.DB.GetUserByID(r.Context(), userID)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			authUser := &types.AuthUser{
+				ID:        user.ID,
+				CreatedAt: user.CreatedAt,
+				UpdatedAt: user.UpdatedAt,
+				Email:     user.Email,
+				IsPremium: user.IsPremium,
+				Username:  user.Username,
+				Name:      user.Name,
+			}
+
+			ctx := context.WithValue(r.Context(), UserContextKey, authUser)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}

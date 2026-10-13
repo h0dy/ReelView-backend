@@ -1,0 +1,35 @@
+package api
+
+import (
+	"encoding/json"
+	"log"
+	"net/http"
+)
+
+// respondWithErr func is a helper function to respond with an http err
+func respondWithErr(w http.ResponseWriter, code int, msg string, err error) {
+	if err != nil {
+		log.Println(err)
+	}
+	type errRes struct {
+		Message string `json:"message"`
+	}
+	respondWithJson(w, code, errRes{
+		Message: msg,
+	})
+}
+
+func respondWithJson(w http.ResponseWriter, code int, payload any) {
+	if code == http.StatusNoContent {
+		w.WriteHeader(code)
+		return
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Error marshalling json: %v\n", err)
+		w.WriteHeader(500)
+		return
+	}
+	w.WriteHeader(code)
+	w.Write(data)
+}

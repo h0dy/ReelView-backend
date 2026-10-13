@@ -1,0 +1,223 @@
+package utils
+
+import (
+	"encoding/json"
+
+	"github.com/h0dy/ReelView/backend/internal/database"
+	"github.com/h0dy/ReelView/backend/internal/types"
+)
+
+func DbMovieTypeToJson(dbMovie database.Movie) (types.Movie, error) {
+	var movieGenres []types.Genre
+	if dbMovie.Genres.Valid {
+		if err := json.Unmarshal(dbMovie.Genres.RawMessage, &movieGenres); err != nil {
+			return types.Movie{}, err
+		}
+	}
+
+	return types.Movie{
+		ID:            dbMovie.ID,
+		TmdbID:        int(dbMovie.TmdbID),
+		ImdbID:        dbMovie.ImdbID,
+		Title:         dbMovie.Title,
+		OriginalTitle: dbMovie.OriginalTitle,
+		PosterPath:    dbMovie.PosterPath,
+		BackdropPath:  dbMovie.BackdropPath,
+		Overview:      dbMovie.Overview,
+		ReleaseDate:   dbMovie.ReleaseDate.String(),
+		VoteAverage:   dbMovie.VoteAverage,
+		VoteCount:     int(dbMovie.VoteCount),
+		Revenue:       int(dbMovie.Revenue),
+		Homepage:      dbMovie.Homepage,
+		Tagline:       dbMovie.Tagline,
+		Trailer:       dbMovie.Trailer,
+		Genre:         movieGenres,
+		Runtime:       int(dbMovie.Runtime),
+	}, nil
+}
+
+func DbReviewsTypeToJson(dbReviews []database.GetMovieReviewsRow) []types.MovieReview {
+	reviews := []types.MovieReview{}
+	for _, r := range dbReviews {
+		reviews = append(reviews, types.MovieReview{
+			ID:        r.ID,
+			MovieID:   r.MovieID,
+			Text:      r.Review,
+			Rating:    r.Rating,
+			IsSpoiler: r.IsSpoiler,
+			CreatedAt: r.CreatedAt,
+			UpdatedAt: r.UpdatedAt,
+			User: types.AuthUser{
+				ID:        r.UserID,
+				Username:  r.UserUsername,
+				Name:      r.UserName,
+				CreatedAt: r.CreatedAt,
+				UpdatedAt: r.UpdatedAt,
+				Email:     r.UserEmail,
+				IsPremium: r.UserIsPremium,
+			},
+		})
+	}
+	return reviews
+}
+
+func DbReviewTypeToJson(dbReview database.MovieReview, user types.AuthUser) types.MovieReview {
+	return types.MovieReview{
+		ID:        dbReview.ID,
+		MovieID:   dbReview.MovieID,
+		Text:      dbReview.Review,
+		Rating:    dbReview.Rating,
+		IsSpoiler: dbReview.IsSpoiler,
+		CreatedAt: dbReview.CreatedAt,
+		UpdatedAt: dbReview.UpdatedAt,
+		User:      user,
+	}
+}
+
+func DbReviewDetailsTypeToJson(dbReview database.GetUserReviewsRow, user types.AuthUser) types.MovieReview {
+	var movieGenres []types.Genre
+	if dbReview.Genres.Valid {
+		if err := json.Unmarshal(dbReview.Genres.RawMessage, &movieGenres); err != nil {
+			return types.MovieReview{}
+		}
+	}
+
+	return types.MovieReview{
+		ID:        dbReview.ID,
+		MovieID:   dbReview.MovieID,
+		Text:      dbReview.Review,
+		Rating:    dbReview.Rating,
+		IsSpoiler: dbReview.IsSpoiler,
+		CreatedAt: dbReview.CreatedAt,
+		UpdatedAt: dbReview.UpdatedAt,
+		User:      user,
+		Movie: types.Movie{
+			ID:            dbReview.ID,
+			TmdbID:        int(dbReview.TmdbID),
+			ImdbID:        dbReview.ImdbID,
+			Title:         dbReview.Title,
+			OriginalTitle: dbReview.OriginalTitle,
+			PosterPath:    dbReview.PosterPath,
+			BackdropPath:  dbReview.BackdropPath,
+			Overview:      dbReview.Overview,
+			ReleaseDate:   dbReview.ReleaseDate.String(),
+			VoteAverage:   dbReview.VoteAverage,
+			VoteCount:     int(dbReview.VoteCount),
+			Revenue:       int(dbReview.Revenue),
+			Homepage:      dbReview.Homepage,
+			Tagline:       dbReview.Tagline,
+			Trailer:       dbReview.Trailer,
+			Genre:         movieGenres,
+			Runtime:       int(dbReview.Runtime),
+		},
+	}
+}
+
+func DbUserToJson(dbUser database.User) types.AuthUser {
+	return types.AuthUser{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+		IsPremium: dbUser.IsPremium,
+		Username:  dbUser.Username,
+		Name:      dbUser.Name,
+		Bio:       dbUser.Bio,
+	}
+}
+
+func DbWatchlistToJson(dbWatchlist database.Watchlist, movie types.Movie) types.WatchlistResponse {
+	return types.WatchlistResponse{
+		ID:        dbWatchlist.ID,
+		MovieID:   dbWatchlist.MovieID,
+		UserID:    dbWatchlist.UserID,
+		CreatedAt: dbWatchlist.CreatedAt,
+		Movie:     movie,
+	}
+}
+
+func DbDiaryToJson(dbDiary database.MovieDiary) types.Diary {
+	return types.Diary{ID: dbDiary.ID, MovieID: dbDiary.MovieID, UserID: dbDiary.UserID, WatchedAt: dbDiary.WatchedAt, UpdatedAt: dbDiary.UpdatedAt, CreatedAt: dbDiary.CreatedAt}
+}
+
+func DbDiaryUserToJson(dbDiary database.GetUserDiariesRow) types.Diary {
+	var movieGenres []types.Genre
+	if dbDiary.Genres.Valid {
+		if err := json.Unmarshal(dbDiary.Genres.RawMessage, &movieGenres); err != nil {
+			return types.Diary{}
+		}
+	}
+
+	return types.Diary{
+		ID:        dbDiary.ID,
+		MovieID:   dbDiary.MovieID,
+		UserID:    dbDiary.UserID,
+		WatchedAt: dbDiary.WatchedAt,
+		UpdatedAt: dbDiary.UpdatedAt,
+		CreatedAt: dbDiary.CreatedAt,
+
+		Movie: types.Movie{
+			ID:            dbDiary.ID,
+			TmdbID:        int(dbDiary.TmdbID),
+			ImdbID:        dbDiary.ImdbID,
+			Title:         dbDiary.Title,
+			OriginalTitle: dbDiary.OriginalTitle,
+			PosterPath:    dbDiary.PosterPath,
+			BackdropPath:  dbDiary.BackdropPath,
+			Overview:      dbDiary.Overview,
+			ReleaseDate:   dbDiary.ReleaseDate.String(),
+			VoteAverage:   dbDiary.VoteAverage,
+			VoteCount:     int(dbDiary.VoteCount),
+			Revenue:       int(dbDiary.Revenue),
+			Homepage:      dbDiary.Homepage,
+			Tagline:       dbDiary.Tagline,
+			Trailer:       dbDiary.Trailer,
+			Genre:         movieGenres,
+			Runtime:       int(dbDiary.Runtime),
+		},
+	}
+}
+
+func DbUserMetaToJson(dbMeta database.GetUserMetadataForMovieRow) types.UserMovieMeta {
+	meta := types.UserMovieMeta{
+		MovieID:       dbMeta.MovieID,
+		IsInWatchlist: dbMeta.IsInWatchlist,
+		TmdbID:        dbMeta.TmdbID,
+	}
+
+	if dbMeta.WatchedAt.Valid {
+		meta.Diary = &types.UserDiary{
+			ID:        dbMeta.DiaryID.UUID,
+			WatchedAt: dbMeta.WatchedAt.Time,
+			CreatedAt: dbMeta.DiaryCreatedAt.Time,
+		}
+	}
+
+	if dbMeta.Review.Valid || dbMeta.Rating.Valid {
+		meta.Review = &types.UserReview{
+			ID: dbMeta.ReviewID.UUID,
+		}
+
+		if dbMeta.Review.Valid {
+			meta.Review.Text = dbMeta.Review.String
+		}
+
+		if dbMeta.Rating.Valid {
+			meta.Review.Rating = dbMeta.Rating.Float64
+		}
+
+		if dbMeta.ReviewCreatedAt.Valid {
+			meta.Review.CreatedAt = dbMeta.ReviewCreatedAt.Time
+		}
+
+		if dbMeta.ReviewUpdatedAt.Valid {
+			meta.Review.UpdatedAt = dbMeta.ReviewUpdatedAt.Time
+		}
+
+		if dbMeta.IsSpoiler.Valid {
+			meta.Review.IsSpoiler = dbMeta.IsSpoiler.Bool
+		}
+	}
+
+	return meta
+}
